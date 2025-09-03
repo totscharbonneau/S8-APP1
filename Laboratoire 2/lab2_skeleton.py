@@ -36,43 +36,44 @@ def test_grad(input_shape, forward, backward, X=None, output_grad=None):
 
 # ------------------------------ Layer functions ------------------------------
 def fully_connected_forward(W, b, X):
-    # <Your code here>
-    raise NotImplementedError()
+    return X @ W.T + b
 
 
 def fully_connected_backward(W, b, X, output_grad):
-    # <Your code here>
-    raise NotImplementedError()
+    deriv_W = output_grad.T @ X
+    deriv_b = np.sum(output_grad,axis=0)
+    deriv_X = output_grad @ W
+    return deriv_X, deriv_W, deriv_b
 
 
 def relu_forward(X):
-    # <Your code here>
-    raise NotImplementedError()
+    return np.maximum(X,0)
 
 
 def relu_backward(X, output_grad):
-    # <Your code here>
-    raise NotImplementedError()
+    dev_relu = np.where(X > 0, 1, 0)
+    return dev_relu * output_grad
 
 
 def sigmoid_forward(X):
-    # <Your code here>
-    raise NotImplementedError()
+    return 1/(1+np.exp(-X))
 
 
 def sigmoid_backward(X, output_grad):
-    # <Your code here>
-    raise NotImplementedError()
-
+    Y = sigmoid_forward(X)
+    deriv_sigm = Y * (1 - Y)
+    return deriv_sigm * output_grad
 
 def bce_forward(x, target):
-    # <Your code here>
-    raise NotImplementedError()
 
+    x = np.clip(x, 1e-12, 1 - 1e-12)
+    return np.mean(- target * np.log(x) - (1 - target) * np.log(1 - x))
 
 def bce_backward(x, target):
-    # <Your code here>
-    raise NotImplementedError()
+    x = np.clip(x, 1e-12, 1 - 1e-12)
+    grad = -target/x + (1- target)/(1-x)
+    grad /= np.size(x)
+    return grad
 
 
 # ------------------------------ Test functions ------------------------------
@@ -322,7 +323,7 @@ def show_classification(W1, b1, W2, b2, W3, b3, X, title=''):
     fig.show()
 
 # ------------------------------------ main -----------------------------------
-mode = 'training'
+mode = 'test'
 if mode == 'test':
     test()
 elif mode == 'overfitting':
