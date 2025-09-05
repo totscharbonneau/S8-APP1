@@ -9,10 +9,11 @@ class FullyConnectedLayer(Layer):
     """
 
     def __init__(self, input_count, output_count):
-        # self.w = np.random.normal(loc=0.0,
-        #                   size=(output_count, input_count))
-        w = np.zeros((output_count,input_count))
+        w = np.random.randn(output_count, input_count)
         b = np.zeros(output_count)
+        # w = np.zeros((output_count,input_count))
+        # b = np.zeros(output_count)
+
         self.parameters = {"w":w,"b":b}
 
 
@@ -20,7 +21,7 @@ class FullyConnectedLayer(Layer):
         return self.parameters
 
     def get_buffers(self):
-        raise NotImplementedError()
+        return {}
 
     def forward(self, x):
         y = x @ self.parameters['w'].T + self.parameters['b']
@@ -38,17 +39,18 @@ class BatchNormalization(Layer):
     This class implements a batch normalization layer.
     """
 
-    parameters = {}
-    buffers = {}
 
     def __init__(self, input_count, alpha=0.1):
         super().__init__()
         self.input_count = input_count
+        self.parameters = {}
+        self.buffers = {}
         self.parameters["gamma"] = np.ones(input_count)
         self.parameters["beta"] = np.zeros(input_count)
 
         self.buffers["global_mean"] = np.zeros(input_count)
         self.buffers["global_variance"] = np.zeros(input_count)
+        # self.momentum = 0.9
 
     def get_parameters(self):
         return self.parameters
@@ -68,6 +70,10 @@ class BatchNormalization(Layer):
         sig_square_b = np.var(x, axis=0)
         x_hat = (x - mu_b) / np.sqrt(sig_square_b + 1e-12)
         y = self.parameters["gamma"] * x_hat + self.parameters["beta"]
+
+        # self.buffers["global_mean"] = self.momentum * self.buffers["global_mean"] + (1 - self.momentum) * mu_b
+        # self.buffers["global_variance"] = self.momentum * self.buffers["global_variance"] + (1 - self.momentum) * sig_square_b
+
         return y, {"input": x, "output": y, "mu_b":mu_b, "sig_square_b":sig_square_b, "x_hat": x_hat}
 
     def _forward_evaluation(self, x):
@@ -100,10 +106,10 @@ class Sigmoid(Layer):
     """
 
     def get_parameters(self):
-        raise NotImplementedError()
+        return {}
 
     def get_buffers(self):
-        raise NotImplementedError()
+        return {}
 
     def forward(self, x):
         y = 1/(1+np.exp(-x))
@@ -122,11 +128,10 @@ class ReLU(Layer):
     """
 
     def get_parameters(self):
-
-        raise NotImplementedError()
+        return {}
 
     def get_buffers(self):
-        raise NotImplementedError()
+        return {}
 
     def forward(self, x):
         y = np.maximum(x, 0)
