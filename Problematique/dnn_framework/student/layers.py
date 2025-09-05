@@ -42,6 +42,7 @@ class BatchNormalization(Layer):
     buffers = {}
 
     def __init__(self, input_count, alpha=0.1):
+        super().__init__()
         self.parameters["gamma"] = np.ones(input_count)
         self.parameters["beta"] = np.zeros(input_count)
 
@@ -55,18 +56,25 @@ class BatchNormalization(Layer):
         return self.buffers
 
     def forward(self, x):
+        if self.is_training():
+            return self._forward_training(x)
+        else:
+            return self._forward_evaluation(x)
+
+
+    def _forward_training(self, x):
         mu_b = np.mean(x, axis=0)
         sig_square_b = np.var(x, axis=0)
         x_hat = (x - mu_b) / np.sqrt(sig_square_b + 1e-12)
         y = self.parameters["gamma"] * x_hat + self.parameters["beta"]
         return y, {"input": x, "output": y}
 
-
-    def _forward_training(self, x):
-        raise NotImplementedError()
-
     def _forward_evaluation(self, x):
-        raise NotImplementedError()
+        mu_b = self.buffers["global_mean"]
+        sig_square_b = self.buffers["global_variance"]
+        x_hat = (x - mu_b) / np.sqrt(sig_square_b + 1e-12)
+        y = self.parameters["gamma"] * x_hat + self.parameters["beta"]
+        return y, {"input": x, "output": y}
 
     def backward(self, output_grad, cache):
         raise NotImplementedError()
