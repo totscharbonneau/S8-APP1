@@ -43,6 +43,7 @@ class BatchNormalization(Layer):
 
     def __init__(self, input_count, alpha=0.1):
         super().__init__()
+        self.input_count = input_count
         self.parameters["gamma"] = np.ones(input_count)
         self.parameters["beta"] = np.zeros(input_count)
 
@@ -67,17 +68,30 @@ class BatchNormalization(Layer):
         sig_square_b = np.var(x, axis=0)
         x_hat = (x - mu_b) / np.sqrt(sig_square_b + 1e-12)
         y = self.parameters["gamma"] * x_hat + self.parameters["beta"]
-        return y, {"input": x, "output": y}
+        return y, {"input": x, "output": y, "mu_b":mu_b, "sig_square_b":sig_square_b, "x_hat": x_hat}
 
     def _forward_evaluation(self, x):
         mu_b = self.buffers["global_mean"]
         sig_square_b = self.buffers["global_variance"]
         x_hat = (x - mu_b) / np.sqrt(sig_square_b + 1e-12)
         y = self.parameters["gamma"] * x_hat + self.parameters["beta"]
-        return y, {"input": x, "output": y}
+        return y, {"input": x, "output": y, "mu_b":mu_b, "sig_square_b":sig_square_b, "x_hat": x_hat}
 
     def backward(self, output_grad, cache):
-        raise NotImplementedError()
+        deriv_x_hat = output_grad * self.parameters["gamma"]
+        deriv_gamma = np.sum(output_grad*cache["output"],axis=0)
+        deriv_beta = np.sum(output_grad,axis=0)
+
+
+        M = cache["input"].shape[0]
+        deriv_x = (1/M) * (1/np.sqrt(cache["sig_square_b"] + 1e-12)) * (M * deriv_x_hat - np.sum(deriv_x_hat,axis=0) - cache["x_hat"]* np.sum(deriv_x_hat*cache["x_hat"],axis=0))
+
+        # deriv_sig_square_b = np.sum(deriv_x_hat*(cache["input"]-cache["mu_b"])*-0.5*((cache["sig_square_b"] + 1e-12)**(-3/2)))
+        #
+        # deriv_mu_b = - np.sum(deriv_x_hat/np.sqrt(cache["sig_square_b"]+1e-12))
+        # deriv_x = deriv_x_hat / np.sqrt(cache["sig_square_b"]+1e-12) + 2/self.input_count * deriv_sig_square_b * (cache["input"]-cache["mu_b"]) + 1/self.input_count * deriv_mu_b
+
+        return (deriv_x, {"gamma":deriv_gamma,"beta":deriv_beta})
 
 
 class Sigmoid(Layer):
